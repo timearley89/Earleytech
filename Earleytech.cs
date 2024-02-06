@@ -243,11 +243,22 @@ namespace Earleytech
                         {
                             //may already be scientific notation. If it is, filter out the '+' - nobody wants to see that crap.
                             string output;
-                            if (input.Contains('+'))
+                            output = input.Replace("+", "");
+                            output = input.Replace("E", "e");
+                            int eIndex = output.ToLower().IndexOf('e');
+                            if (!output.Contains("."))
                             {
-                                output = input.Replace("+", "");
+                                //no decimal place
+
+                                output = output.Insert(eIndex, ".000");
                             }
-                            else { output = input; }
+                            else if (eIndex < 5)
+                            {
+                                for (int i = eIndex; i < 5; i++)
+                                {
+                                    output = output.Insert(i, "0");
+                                }
+                            }
                             return output; 
                         }
                         double testparser = 0;
