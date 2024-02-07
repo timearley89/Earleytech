@@ -1,4 +1,7 @@
 ﻿using System.ComponentModel;
+using System.Diagnostics.CodeAnalysis;
+using System.Net;
+using System.Net.NetworkInformation;
 using System.Runtime.Serialization;
 using System.Xml.Serialization;
 
@@ -340,6 +343,224 @@ namespace Earleytech
             SecondsToMinSec = 256,
             SecondsToHourMinSec = 512
         }
+
+        /// <summary>
+        /// Returns bool stating whether given string is a valid email address or not based on simple rules.
+        /// </summary>
+        /// <param name="str"></param>
+        /// <returns></returns>
+        public static bool ValidateEmail(string str) //functional
+        {
+            if (!str.Contains("@") || !str.Contains(".")) { return false; }
+            if (str[0] == '@') { return false; }
+            bool foundat = false;
+            bool dotafterat = false;
+            for (int i = str.IndexOf('@'); i < str.Length; i++)
+            {
+                if (str[i] == '@') { foundat = true; continue; }
+                if (i == str.IndexOf('@') + 1)
+                {
+                    if (str[i] == '.') { return false; }
+                }
+                if (i == str.Length - 1)
+                {
+                    if (str[i] == '@' || str[i] == '.') { return false; }
+                }
+                if (str[i] == '.' && foundat) { dotafterat = true; }
+            }
+            if (!dotafterat) { return false; }
+            return true;
+        }
     }
 
+    public static class Binary
+    {
+        /// <summary>
+        /// Takes string binary representation ("10110110") and returns integer form. Base2 to Base10 Converter.
+        /// Does not handle invalid inputs ("01101021", "a01101001")
+        /// </summary>
+        /// <param name="input">String containing binary representation: '01101101'</param>
+        /// <returns>Base10 Int that the given binary refers to.</returns>
+        public static int BinToInt(string input)
+        {
+            int startpower = input.Length - 1;
+            int accum = 0;
+            for (int i = 0; i < input.Length; i++)
+            {
+                accum += (int)(Int32.Parse(input[i].ToString()) * Math.Pow(2, startpower));
+                startpower--;
+            }
+            return accum;
+        }
+
+        /// <summary>
+        /// Returns string representation of a binary number from a given integer. (15) => "1111".
+        /// </summary>
+        /// <param name="input"></param>
+        /// <returns>String representing binary (base 2) notation. '11010110'</returns>
+        public static string IntToBin(int input)
+        {
+            int largestpower = 0;
+            for (int i = 1; i <= 32; i++)
+            {
+                if (Math.Pow(2, i) > input) { largestpower = i - 1; break; }
+            }
+            string binary = "";
+            while (input > 0 || largestpower >= 0)
+            {
+                if (input - Math.Pow(2, largestpower) >= 0)
+                {
+                    input -= (int)Math.Pow(2, largestpower);
+                    largestpower--;
+                    binary += "1";
+                }
+                else
+                {
+                    largestpower--;
+                    binary += "0";
+                }
+            }
+            return binary;
+        }
+    }
+
+    public static class Networking
+    {
+        /// <summary>
+        /// Tests string to see if it is a valid IPv4 address.
+        /// </summary>
+        /// <param name="strInput">IPv4 address as string - "192.168.254.254"</param>
+        /// <param name="strIP">OUT - IPAddress object created if input string is a valid IPv4 address.</param>
+        /// <returns>True if input was valid, false if not.</returns>
+        public static bool IsValidIP(string strInput, out IPAddress? strIP) //functional - tests string to see if it is a valid ipv4 address
+        {
+            strIP = null;
+            //return false if not exactly 4 groups after split operation based on '.' char.
+            string[] groups = strInput.Split('.', StringSplitOptions.TrimEntries);
+            if (groups.Length != 4) { return false; }
+            byte outbyte;
+            byte[] octets = new byte[4];
+            for (int i = 0; i < groups.Length; i++)
+            {
+                if (byte.TryParse(groups[i], out outbyte)) { octets[i] = outbyte; } else { return false; }
+                //tries to parse each substring as a byte (numerical 0-255), and if any of them fail, return false.
+            }
+            //if execution reaches here, we have successfully validated 4 bytes in IP format. return true after setting out to new IP.
+            strIP = new IPAddress(octets);
+            if (strIP == null) { return false; }
+            return true;
+        }
+
+        /// <summary>
+        /// Asynchronously pings a given IP address and returns a Tuple pairing round trip time with the IP.
+        /// </summary>
+        /// <param name="thisIP">DNS server or computer address to test.</param>
+        /// <returns>Task of type Tuple<long, IPAddress> containing the IPAddress that was tested and it's round trip time in mS.</returns>
+        static async Task<Tuple<long, IPAddress>> PingDNSAsync(IPAddress thisIP)
+        {
+            Ping thisping = new Ping();
+            PingReply myreply = await thisping.SendPingAsync(thisIP);
+            Tuple<long, IPAddress> myresult = new Tuple<long, IPAddress>(myreply.RoundtripTime, thisIP);
+            return myresult;
+        }
+    }
+
+}
+namespace Earleytech.Notes
+{
+    [DefaultValue(NoteState.Active)]
+    public enum NoteState
+    {
+        Active = 1,
+        Completed = 2,
+        Deleted = 4,
+        Expired = 8
+    }
+    public struct Note : IEquatable<Note>
+    {
+        public NoteState State { get; set; }
+        public string Title { get; set; }
+        public string Text { get; set; }
+
+        public Note()
+        {
+            this.State = default;
+            this.Title = "";
+            this.Text = "";
+        }
+        public Note(String Text)
+        {
+            this.State = default;
+            this.Title = "";
+            this.Text = Text;
+        }
+        public Note(String Text, String Title)
+        {
+            this.State = default;
+            this.Title = Title;
+            this.Text = Text;
+        }
+        public Note(String Text, String Title, NoteState State)
+        {
+            this.State = State;
+            this.Title = Title;
+            this.Text = Text;
+        }
+
+        public bool Equals(Note b)
+        {
+            return (this.State == b.State && this.Title == b.Title && this.Text == b.Text);
+        }
+        public override bool Equals(object? obj)
+        {
+            return (obj is Note) && Equals((Note)obj);
+        }
+        public override int GetHashCode()
+        {
+            int accum = 0;
+            accum += (int)this.State;
+            foreach (char c in this.Title)
+            {
+                accum += (int)c;
+            }
+            foreach (char c in this.Text)
+            {
+                accum += (int)c;
+            }
+            return accum;
+        }
+        
+    }
+    public struct NoteStore
+    {
+        public List<Note> notes { get; set; }
+        public NoteStore()
+        {
+            this.notes = new List<Note>();
+        }
+        public NoteStore(Note note)
+        {
+            this.notes = new List<Note>() { note };
+        }
+        public NoteStore(IEnumerable<Note> notes)
+        {
+            this.notes = notes.ToList();
+        }
+        public List<Note> GetAll()
+        {
+            return this.notes;
+        }
+        public List<Note> GetNotesByState(NoteState state)
+        {
+            return this.notes.Where(x => x.State == state).ToList();
+        }
+        public List<Note> GetNotesByTitle(String title)
+        {
+            return this.notes.Where(x => x.Title == title).ToList();
+        }
+        public List<Note> GetNotesByText(String text)
+        {
+            return this.notes.Where(x => x.Text == text).ToList();
+        }
+    }
 }
