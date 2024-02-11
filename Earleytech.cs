@@ -480,7 +480,7 @@ namespace Earleytech.Notes
         Expired = 16,
         Failed = 32
     }
-    public class Note : IEquatable<Note>, INotifyPropertyChanged
+    public class Note : IEquatable<Note>, INotifyPropertyChanged, INote
     {
         #region Fields
         private NoteState state;
@@ -514,17 +514,17 @@ namespace Earleytech.Notes
                 } 
             } 
         }
-        public string? Text 
-        { 
-            get { return text; } 
-            set 
-            { 
-                if (text != value) 
-                { 
-                    text = value; 
-                    OnNoteChanged(nameof(Text)); 
-                } 
-            } 
+        public string? Text
+        {
+            get { return text; }
+            set
+            {
+                if (text != value)
+                {
+                    text = value;
+                    OnNoteChanged(nameof(Text));
+                }
+            }
         }
         public int ID 
         { 
@@ -678,7 +678,7 @@ namespace Earleytech.Notes
         /// </summary>
         /// <param name="b">Note to compare to</param>
         /// <returns><bool>true</bool> if they match, <bool>false</bool> if not.</returns>
-        public bool Equals(Note? b)
+        public virtual bool Equals(Note? b)
         {
             return (this != null && b != null && this.State == b.State && this.Title == b.Title && this.Text == b.Text && this.ID == b.ID);
         }
@@ -959,5 +959,22 @@ namespace Earleytech.Notes
                 PropertyChanged(this, e);
             }
         }
+    }
+    public interface INote : IEquatable<Note>
+    {
+        /// <summary>
+        /// All Notes must have an 'ID' Property. This is to be a public property referencing a private backing field (public get, private set).
+        /// </summary>
+        int ID { get; }
+        /// <summary>
+        /// No point making a 'Note' if it can't store any content...
+        /// </summary>
+        string? Text { get; set; }
+        /// <summary>
+        /// Void method which sets the internal private _id field after instantiation. Must exist or ID is not changeable.
+        /// </summary>
+        /// <param name="ID">New ID value to set to.</param>
+        public void SetID(int ID);
+
     }
 }
