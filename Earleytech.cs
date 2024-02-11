@@ -709,7 +709,7 @@ namespace Earleytech.Notes
         }
         #endregion
 
-        #region EventHandlers
+        #region Events
         /// <summary>
         /// Occurs when one of Note's properties change. 'e' contains PropertyName.
         /// EventHandler is raised by 'Note.OnNoteChanged()' if a property is changed (the set function calls OnNoteChanged) and if a
@@ -729,7 +729,8 @@ namespace Earleytech.Notes
         }
         #endregion
     }
-    public class NoteStore : IEnumerable<Note>
+
+    public class NoteStore : IEnumerable<Note>, INotifyPropertyChanged
     {
         private List<Note> notes { get; set; }
         /// <summary>
@@ -746,6 +747,7 @@ namespace Earleytech.Notes
         public NoteStore(Note note)
         {
             this.notes = new List<Note>() { note };
+            OnPropertyChanged(note.ID);
         }
         /// <summary>
         /// Creates a NoteStore from a list or array of notes.
@@ -754,6 +756,10 @@ namespace Earleytech.Notes
         public NoteStore(IEnumerable<Note> notes)
         {
             this.notes = notes.ToList();
+            foreach (Note note in notes)
+            {
+                OnPropertyChanged(note.ID);
+            }
         }
         /// <summary>
         /// Returns the full internal list of notes in this NoteStore.
@@ -813,6 +819,7 @@ namespace Earleytech.Notes
         public void Add(Note note)
         {
             this.notes.Add(note);
+            OnPropertyChanged(note.ID);
         }
         /// <summary>
         /// Adds a List of notes to the end of the NoteStore.
@@ -821,6 +828,7 @@ namespace Earleytech.Notes
         public void Add(List<Note> notes)
         {
             this.notes.AddRange(notes);
+            foreach (Note note in notes) { OnPropertyChanged(note.ID); }
         }
         /// <summary>
         /// Inserts the given note at the given index within this NoteStore.
@@ -830,6 +838,7 @@ namespace Earleytech.Notes
         public void AddAt(int index, Note note)
         {
             this.notes.Insert(index, note);
+            OnPropertyChanged(note.ID);
         }
         /// <summary>
         /// Inserts the given List of notes at the given index within this NoteStore.
@@ -843,6 +852,10 @@ namespace Earleytech.Notes
             firstList.AddRange(notesToAdd);
             firstList.AddRange(secondList);
             notes = firstList;
+            foreach (Note note in notesToAdd)
+            {
+                OnPropertyChanged(note.ID);
+            }
         }
         /// <summary>
         /// Deletes all notes and reinitializes this NoteStore's internal List<Note>.
@@ -921,9 +934,11 @@ namespace Earleytech.Notes
             if (searchResult is not null)
             {
                 searchResult = note;
+                OnPropertyChanged(note.ID);
                 return true;
             }
             else { return false; }
+
         }
         public IEnumerator<Note> GetEnumerator()
         {
@@ -932,6 +947,17 @@ namespace Earleytech.Notes
         System.Collections.IEnumerator System.Collections.IEnumerable.GetEnumerator()
         {
             return notes.GetEnumerator();
+        }
+
+        public event PropertyChangedEventHandler? PropertyChanged;
+
+        private void OnPropertyChanged(int NoteID)
+        {
+            if (PropertyChanged != null && NoteID >= 0)
+            {
+                PropertyChangedEventArgs e = new PropertyChangedEventArgs(NoteID.ToString());
+                PropertyChanged(this, e);
+            }
         }
     }
 }
