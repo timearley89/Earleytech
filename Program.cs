@@ -10,12 +10,12 @@ namespace Earleytech
     {
         static void Main()
         {
-            string input;
+            string? input;
             do
             {
                 input = Console.ReadLine();
                 Console.WriteLine(Strings.Stringify(input, Strings.StringifyOptions.LongText));
-            } while (input.Trim().ToLower() != "exit");
+            } while (input != null && input.Trim().ToLower() != "exit");
         }
     }
 }

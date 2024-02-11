@@ -1,4 +1,5 @@
 ﻿using System.ComponentModel;
+using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Net;
 using System.Net.NetworkInformation;
@@ -88,8 +89,9 @@ namespace Earleytech
         /// <param name="option">Default is '.LongText'. Determines how output will be formatted ('1.328 Billion', '1.328B', '1.328E+9', etc).</param>
         /// <returns></returns>
         /// <exception cref="ArgumentOutOfRangeException"></exception>
-        public static string Stringify(string input, StringifyOptions option = StringifyOptions.LongText)
+        public static string Stringify(string? input, StringifyOptions option = StringifyOptions.LongText)
         {
+            if (input == null) { return ""; }
             if (input == double.PositiveInfinity.ToString())
             {
                 throw new ArgumentOutOfRangeException(nameof(input), input, "Positive infinity reached!");
@@ -472,44 +474,213 @@ namespace Earleytech.Notes
     public enum NoteState
     {
         Active = 1,
-        Completed = 2,
-        Deleted = 4,
-        Expired = 8
+        Inactive = 2,
+        Completed = 4,
+        Deleted = 8,
+        Expired = 16,
+        Failed = 32
     }
-    public struct Note : IEquatable<Note>
+    public class Note : IEquatable<Note>
     {
-        public NoteState State { get; set; }
-        public string Title { get; set; }
-        public string Text { get; set; }
+        #region Fields
+        private NoteState state;
+        private string? title;
+        private string? text;
+        private int id;
+        #endregion
 
+        #region Properties
+        public NoteState State 
+        { 
+            get { return state; } 
+            set 
+            {
+                if (state != value) 
+                { 
+                    state = value; 
+                    OnNoteChanged(nameof(State)); 
+                } 
+            } 
+        }
+        public string? Title 
+        { 
+            get { return title; } 
+            set 
+            { 
+                if (title != value) 
+                { 
+                    title = value; 
+                    OnNoteChanged(nameof(Title)); 
+                } 
+            } 
+        }
+        public string? Text 
+        { 
+            get { return text; } 
+            set 
+            { 
+                if (text != value) 
+                { 
+                    text = value; 
+                    OnNoteChanged(nameof(Text)); 
+                } 
+            } 
+        }
+        public int ID 
+        { 
+            get { return id; } 
+            private set 
+            { 
+                if (id != value) 
+                { 
+                    id = value; 
+                    OnNoteChanged(nameof(ID)); 
+                } 
+            } 
+        }
+        #endregion
+
+        #region Constructors
+        /// <summary>
+        /// Create empty note with default state and ID=-1.
+        /// </summary>
         public Note()
         {
-            this.State = default;
-            this.Title = "";
-            this.Text = "";
+            this.state = default;
+            this.title = "";
+            this.text = "";
+            this.id = -1;
         }
+        /// <summary>
+        /// Create empty note with default state and given ID.
+        /// </summary>
+        /// <param name="ID">ID to assign to the new note.</param>
+        public Note(int ID)
+        {
+            this.state = default;
+            this.title = "";
+            this.text = "";
+            this.id = ID;
+        }
+        /// <summary>
+        /// Create new note containing Text with default state, empty title, and ID==-1.
+        /// </summary>
+        /// <param name="Text"></param>
         public Note(String Text)
         {
-            this.State = default;
-            this.Title = "";
-            this.Text = Text;
+            this.state = default;
+            this.title = "";
+            this.text = Text;
+            this.id = -1;
         }
+        /// <summary>
+        /// Create new note containing Text and Title with default state and ID==-1.
+        /// </summary>
+        /// <param name="Text"></param>
+        /// <param name="Title"></param>
         public Note(String Text, String Title)
         {
-            this.State = default;
-            this.Title = Title;
-            this.Text = Text;
+            this.state = default;
+            this.title = Title;
+            this.text = Text;
+            this.id = -1;
         }
+        /// <summary>
+        /// Create new note containing Text and State with empty title and ID==-1.
+        /// </summary>
+        /// <param name="Text"></param>
+        /// <param name="State"></param>
+        public Note(String Text, NoteState State)
+        {
+            this.state = State;
+            this.text = Text;
+            this.title = "";
+            this.id = -1;
+        }
+        /// <summary>
+        /// Create new note containing Text and ID with default state and empty title.
+        /// </summary>
+        /// <param name="Text"></param>
+        /// <param name="ID"></param>
+        public Note(String Text, int ID)
+        {
+            this.state = default;
+            this.text = Text;
+            this.title = "";
+            this.id = ID;
+        }
+        /// <summary>
+        /// Create new note containing Text, State and ID with empty title.
+        /// </summary>
+        /// <param name="Text"></param>
+        /// <param name="State"></param>
+        /// <param name="ID"></param>
+        public Note(String Text, NoteState State, int ID)
+        {
+            this.state = State;
+            this.text = Text;
+            this.title = "";
+            this.id = ID;
+        }
+        /// <summary>
+        /// Create new note containing Text, Title and State with ID==-1.
+        /// </summary>
+        /// <param name="Text"></param>
+        /// <param name="Title"></param>
+        /// <param name="State"></param>
         public Note(String Text, String Title, NoteState State)
         {
-            this.State = State;
-            this.Title = Title;
-            this.Text = Text;
+            this.state = State;
+            this.title = Title;
+            this.text = Text;
+            this.id = -1;
         }
-
-        public bool Equals(Note b)
+        /// <summary>
+        /// Create new note containing Text, Title and ID with default state.
+        /// </summary>
+        /// <param name="Text"></param>
+        /// <param name="Title"></param>
+        /// <param name="ID"></param>
+        public Note(String Text, String Title, int ID)
         {
-            return (this.State == b.State && this.Title == b.Title && this.Text == b.Text);
+            this.state = default;
+            this.title = Title;
+            this.text = Text;
+            this.id = ID;
+        }
+        /// <summary>
+        /// Create new note containing Text, Title, State and ID.
+        /// </summary>
+        /// <param name="Text"></param>
+        /// <param name="Title"></param>
+        /// <param name="State"></param>
+        /// <param name="ID"></param>
+        public Note(String Text, String Title, NoteState State, int ID)
+        {
+            this.state = State;
+            this.title = Title;
+            this.text = Text;
+            this.id = ID;
+        }
+        #endregion
+
+        #region Methods
+        /// <summary>
+        /// Set the ID property of this note.
+        /// </summary>
+        /// <param name="ID"></param>
+        public void SetID(int ID)
+        {
+            this.ID = ID;
+        }
+        /// <summary>
+        /// Compares this note to another note by all properties, and returns whether they match or not.
+        /// </summary>
+        /// <param name="b">Note to compare to</param>
+        /// <returns><bool>true</bool> if they match, <bool>false</bool> if not.</returns>
+        public bool Equals(Note? b)
+        {
+            return (this != null && b != null && this.State == b.State && this.Title == b.Title && this.Text == b.Text && this.ID == b.ID);
         }
         public override bool Equals(object? obj)
         {
@@ -518,49 +689,249 @@ namespace Earleytech.Notes
         public override int GetHashCode()
         {
             int accum = 0;
-            accum += (int)this.State;
-            foreach (char c in this.Title)
+            accum ^= (int)this.State;
+            accum ^= this.ID;
+            if (this.Title != null)
             {
-                accum += (int)c;
+                foreach (char c in this.Title)
+                {
+                    accum ^= (int)c;
+                }
             }
-            foreach (char c in this.Text)
+            if (this.Text != null)
             {
-                accum += (int)c;
+                foreach (char c in this.Text)
+                {
+                    accum ^= (int)c;
+                }
             }
             return accum;
         }
-        
+        #endregion
+
+        #region Events
+        /// <summary>
+        /// Occurs when one of Note's properties change. 'e' contains PropertyName.
+        /// EventHandler is raised by 'Note.OnNoteChanged()' if a property is changed (the set function calls OnNoteChanged) and if a
+        /// 'method is subscribed' (NoteChanged.Add(delegate void) has been called).
+        /// </summary>
+        public event EventHandler? NoteChanged;
+        #endregion
+
+        #region EventHandlers
+        public void OnNoteChanged(string PropertyName)
+        {
+            if (NoteChanged != null && PropertyName != null) 
+            { 
+                PropertyChangedEventArgs e = new PropertyChangedEventArgs(PropertyName);
+                NoteChanged(this, e); 
+            }
+        }
+        #endregion
     }
-    public struct NoteStore
+    public class NoteStore : IEnumerable<Note>
     {
-        public List<Note> notes { get; set; }
+        private List<Note> notes { get; set; }
+        /// <summary>
+        /// Default constructor - creates an empty NoteStore.
+        /// </summary>
         public NoteStore()
         {
             this.notes = new List<Note>();
         }
+        /// <summary>
+        /// Creates a NoteStore containing one object 'note'.
+        /// </summary>
+        /// <param name="note">The one note for the new NoteStore to contain.</param>
         public NoteStore(Note note)
         {
             this.notes = new List<Note>() { note };
         }
+        /// <summary>
+        /// Creates a NoteStore from a list or array of notes.
+        /// </summary>
+        /// <param name="notes">The IEnumberable collection of type Note.</param>
         public NoteStore(IEnumerable<Note> notes)
         {
             this.notes = notes.ToList();
         }
+        /// <summary>
+        /// Returns the full internal list of notes in this NoteStore.
+        /// </summary>
+        /// <returns>(List<Note>)this.notes</returns>
         public List<Note> GetAll()
         {
             return this.notes;
         }
+        public Note? GetNoteByTitle(String title)
+        {
+            return notes.Find(x => x.Title == title);
+        }
+        public Note? GetNoteByText(String text)
+        {
+            return notes.Find(x => x.Text == text);
+        }
+        public Note? GetNoteByState(NoteState state)
+        {
+            return notes.Find(x => x.State == state);
+        }
+        public Note? GetNoteByID(int ID)
+        {
+            return notes.Find(x => x.ID == ID);
+        }
+        /// <summary>
+        /// Returns a list of notes that match the given NoteState.
+        /// </summary>
+        /// <param name="state">NoteState enum param to match.</param>
+        /// <returns>List of type Note of all notes matching the given NoteState.</returns>
         public List<Note> GetNotesByState(NoteState state)
         {
             return this.notes.Where(x => x.State == state).ToList();
         }
+        /// <summary>
+        /// Returns a list of notes that match the given Title.
+        /// </summary>
+        /// <param name="title">Title string param to match.</param>
+        /// <returns>List of type Note of all notes matching the given Title.</returns>
         public List<Note> GetNotesByTitle(String title)
         {
             return this.notes.Where(x => x.Title == title).ToList();
         }
+        /// <summary>
+        /// Returns a list of notes that match the given Text.
+        /// </summary>
+        /// <param name="text">Text string param to match.</param>
+        /// <returns>List of type Note of all notes matching the given Text.</returns>
         public List<Note> GetNotesByText(String text)
         {
             return this.notes.Where(x => x.Text == text).ToList();
+        }
+        /// <summary>
+        /// Adds a single note to the NoteStore.
+        /// </summary>
+        /// <param name="note">Note to add.</param>
+        public void Add(Note note)
+        {
+            this.notes.Add(note);
+        }
+        /// <summary>
+        /// Adds a List of notes to the end of the NoteStore.
+        /// </summary>
+        /// <param name="notes">List of notes to append.</param>
+        public void Add(List<Note> notes)
+        {
+            this.notes.AddRange(notes);
+        }
+        /// <summary>
+        /// Inserts the given note at the given index within this NoteStore.
+        /// </summary>
+        /// <param name="index">0-based index for where to insert note.</param>
+        /// <param name="note">The note to be inserted.</param>
+        public void AddAt(int index, Note note)
+        {
+            this.notes.Insert(index, note);
+        }
+        /// <summary>
+        /// Inserts the given List of notes at the given index within this NoteStore.
+        /// </summary>
+        /// <param name="index">0-based index for where to insert the list.</param>
+        /// <param name="notesToAdd">The list of notes to add.</param>
+        public void AddAt(int index, List<Note> notesToAdd)
+        {
+            List<Note> firstList = notes.GetRange(0, index);
+            List<Note> secondList = notes.GetRange(index, notes.Count - index);
+            firstList.AddRange(notesToAdd);
+            firstList.AddRange(secondList);
+            notes = firstList;
+        }
+        /// <summary>
+        /// Deletes all notes and reinitializes this NoteStore's internal List<Note>.
+        /// </summary>
+        public void DeleteAll()
+        {
+            this.notes = new List<Note>();
+        }
+        /// <summary>
+        /// Deletes one Note from the specified index.
+        /// </summary>
+        /// <param name="index">Index of the note to delete.</param>
+        public void DeleteAt(int index)
+        {
+            this.notes.RemoveAt(index);
+        }
+        /// <summary>
+        /// Deletes all occurrences of notes matching the given note. Note.Equals() compares State, Title and Text to determine equality.
+        /// </summary>
+        /// <param name="note">The note to look for and delete.</param>
+        public void Delete(Note note)
+        {
+            this.notes.RemoveAll(x => x.Equals(note));
+        }
+        /// <summary>
+        /// Deletes the first occurrence of the given note, by using Note.Equals.
+        /// </summary>
+        /// <param name="note">The note to look for and delete.</param>
+        public void DeleteFirst(Note note)
+        {
+            this.notes.Remove(note);
+        }
+        /// <summary>
+        /// Deletes all notes with the given title.
+        /// </summary>
+        /// <param name="Title">Title string to look for and delete.</param>
+        /// <returns>Count of deleted items.</returns>
+        public int DeleteByTitle(String Title)
+        {
+            int delcount = this.notes.RemoveAll(x => x.Title == Title);
+            return delcount;
+        }
+        /// <summary>
+        /// Deletes all notes with the given text.
+        /// </summary>
+        /// <param name="Text">Text string to look for and delete.</param>
+        /// <returns>Count of deleted items.</returns>
+        public int DeleteByText(String Text)
+        {
+            int delcount = this.notes.RemoveAll(x => x.Text == Text);
+            return delcount;
+        }
+        /// <summary>
+        /// Deletes all notes with the given state.
+        /// </summary>
+        /// <param name="State">NoteState parameter to look for and delete.</param>
+        /// <returns>Count of deleted items.</returns>
+        public int DeleteByState(NoteState State)
+        {
+            int delcount = this.notes.RemoveAll(x => x.State == State);
+            return delcount;
+        }
+        /// <summary>
+        /// Deletes the first note matching the given ID, if found.
+        /// </summary>
+        /// <param name="ID">ID of note to delete from this NoteStore.</param>
+        /// <returns><bool>true</bool> if a matching ID is found and deleted, <bool>false</bool> otherwise.</returns>
+        public bool DeleteByID(int ID)
+        {
+            Note? mynote = notes.Find(x => x.ID == ID);
+            if (mynote != default) { return notes.Remove(mynote); } else { return false; }
+        }
+        public bool UpdateNote(Note note)
+        {
+            Note? searchResult = notes.Find(x => x.ID == note.ID);
+            if (searchResult is not null)
+            {
+                searchResult = note;
+                return true;
+            }
+            else { return false; }
+        }
+        public IEnumerator<Note> GetEnumerator()
+        {
+            return notes.GetEnumerator();
+        }
+        System.Collections.IEnumerator System.Collections.IEnumerable.GetEnumerator()
+        {
+            return notes.GetEnumerator();
         }
     }
 }
