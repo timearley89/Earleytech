@@ -719,7 +719,7 @@ namespace Earleytech.Notes
         #endregion
 
         #region EventCallers
-        public void OnNoteChanged(string PropertyName)
+        private void OnNoteChanged(string PropertyName)
         {
             if (PropertyChanged != null && PropertyName != null) 
             { 
