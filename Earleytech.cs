@@ -480,7 +480,7 @@ namespace Earleytech.Notes
         Expired = 16,
         Failed = 32
     }
-    public class Note : IEquatable<Note>
+    public class Note : IEquatable<Note>, INotifyPropertyChanged
     {
         #region Fields
         private NoteState state;
@@ -709,22 +709,22 @@ namespace Earleytech.Notes
         }
         #endregion
 
-        #region Events
+        #region EventHandlers
         /// <summary>
         /// Occurs when one of Note's properties change. 'e' contains PropertyName.
         /// EventHandler is raised by 'Note.OnNoteChanged()' if a property is changed (the set function calls OnNoteChanged) and if a
         /// 'method is subscribed' (NoteChanged.Add(delegate void) has been called).
         /// </summary>
-        public event EventHandler? NoteChanged;
+        public event PropertyChangedEventHandler? PropertyChanged;
         #endregion
 
-        #region EventHandlers
+        #region EventCallers
         public void OnNoteChanged(string PropertyName)
         {
-            if (NoteChanged != null && PropertyName != null) 
+            if (PropertyChanged != null && PropertyName != null) 
             { 
                 PropertyChangedEventArgs e = new PropertyChangedEventArgs(PropertyName);
-                NoteChanged(this, e); 
+                PropertyChanged(this, e); 
             }
         }
         #endregion
