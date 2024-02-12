@@ -960,6 +960,9 @@ namespace Earleytech.Notes
             }
         }
     }
+    /// <summary>
+    /// Defines minimum requrements for creating a 'Note' object.
+    /// </summary>
     public interface INote : IEquatable<Note>
     {
         /// <summary>
@@ -976,5 +979,875 @@ namespace Earleytech.Notes
         /// <param name="ID">New ID value to set to.</param>
         public void SetID(int ID);
 
+    }
+}
+
+namespace Earleytech.Huffman
+{
+    public static class Compression
+    {
+        /// <summary>
+        /// Counts and categorizes ascii characters by frequency of appearance in string inputString,
+        /// and returns an array of type int containing the frequencies, indexed as cast ascii value.
+        /// </summary>
+        /// <param name="inputString">Input string to categorize</param>
+        /// <returns>ASCII char frequency map, indexed by value of ascii char.</returns>
+        public static int[][] Categorize(string inputString)
+        {
+            //valid ascii chars(that we care about) range from 32-126.
+            int[][] frequencies = new int[94][];
+            //initialize each subarray.
+            for (int i = 0; i < frequencies.Length; i++)
+            {
+                frequencies[i] = new int[2];
+            }
+            foreach (char c in inputString)
+            {
+                if ((int)c >= 32 && (int)c <= 126)
+                {
+                    //in each subarray, [0] is the char code, [1] is it's frequency of appearance. This makes it order-invariant.
+                    frequencies[(int)c - 32][0] = (int)c;
+                    frequencies[(int)c - 32][1]++;
+                }
+
+            }
+            return frequencies;
+        }
+        public static string ReadFile(string filePath)
+        {
+            if (File.Exists(filePath))
+            {
+                FileStream fs = new FileStream(filePath, FileMode.Open, FileAccess.Read);
+                TextReader tReader = new StreamReader(fs);
+                string outputString = tReader.ReadToEnd();
+                fs.Dispose();
+                return outputString;
+            }
+            else { throw new FileNotFoundException(); }
+        }
+        public static void BuildTree(int[][] inputFrequencies)
+        {
+            //sort jagged array in order of character appearance, lowest to highest.
+            Array.Sort(inputFrequencies, Comparer<int[]>.Create(new Comparison<int[]>((x, y) => (x[1].CompareTo(y[1])))));
+            //We're going to use a list to contain relevant entries, which is if value > 0.
+            List<int[]> validFrequencies = new List<int[]>();
+            validFrequencies = inputFrequencies.SkipWhile(x => x[1] == 0).ToList();
+            
+        }
+
+        public interface IBaseNode
+        {
+            public char MyChar { get; }
+            public bool isLeaf();
+        }
+        public class InternalNode : IBaseNode
+        {
+            public char MyChar { get; set; }
+            public IBaseNode? LeftNode { get; }
+            public IBaseNode? RightNode { get; }
+
+            public bool isLeaf() { return false; }
+
+        }
+        public class LeafNode : IBaseNode
+        {
+            public char MyChar { get; set; }
+            public int Weight { get; set; }
+            public LeafNode(char myChar)
+            {
+
+            }
+            public bool isLeaf() { return true; }
+        }
+    }
+    
+    public static class Decompression
+    {
+
+    }
+}
+
+namespace Earleytech.Search
+{
+    public interface INode
+    {
+        public int Value { get; }
+    }
+    public class Node : INode
+    {
+        public int Value { get; }
+        public object? Payload { get; set; }
+        public Node? Left { get; set; }
+        public Node? Right { get; set; }
+        public Node(int _value)
+        {
+            Value = _value;
+        }
+        public bool Search(int value)
+        {
+            if (value == this.Value) 
+            { 
+                return true; 
+            }
+            else
+            {
+                if (value < this.Value)
+                {
+                    if (this.Left != null)
+                    {
+                        return this.Left.Search(value);
+                    }
+                    else
+                    {
+                        this.Left = new Node(value);
+                        return false;
+                    }
+                }
+                else 
+                {
+                    if (this.Right != null)
+                    {
+                        return this.Right.Search(value);
+                    }
+                    else
+                    {
+                        this.Right = new Node(value);
+                        return false;
+                    }
+                }
+            }
+        }
+    }
+    public class BinarySearchTree
+    {
+        public Node? rootNode;
+        public bool FindValue(int value)
+        {
+            if (rootNode == null) { rootNode = new Node(value); }
+            return rootNode.Search(value);
+        }
+    }
+}
+namespace Earleytech.Extensions
+{
+    public static class ArrayExtensions
+    {
+        /// <summary>
+        /// Checks whether or not an int[] is in descending order.
+        /// </summary>
+        /// <param name="inputArr">The array to check</param>
+        /// <param name="StrictMode">Optional parameter - If set to true, repeating values will cause a return of 'false'. Default is false.</param>
+        /// <returns>Bool representing whether or not the input array is in descending order.</returns>
+        public static bool IsDescending(this int[] inputArr, bool StrictMode = false)
+        {
+            //if length is less than 2, return true - single values can be seen as descending with themselves...
+            if (inputArr.Length < 2) { return true; }
+            if (StrictMode)
+            {
+                for (int i = 0; i < inputArr.Length - 1; i++)
+                {
+                    if (inputArr[i+1] >= inputArr[i]) { return false; }
+                }
+                return true;
+            }
+            //if strictmode is false, do the same thing, just don't pay attention if the value is the same as it's preceding.
+            else
+            {
+                for (int i = 0; i < inputArr.Length - 1; i++)
+                {
+                    if (inputArr[i + 1] > inputArr[i]) { return false; }
+                }
+                return true;
+            }
+        }
+        public static bool IsDescending(this uint[] inputArr, bool StrictMode = false)
+        {
+            //if length is less than 2, return true - single values can be seen as descending with themselves...
+            if (inputArr.Length < 2) { return true; }
+            if (StrictMode)
+            {
+                for (int i = 0; i < inputArr.Length - 1; i++)
+                {
+                    if (inputArr[i + 1] >= inputArr[i]) { return false; }
+                }
+                return true;
+            }
+            //if strictmode is false, do the same thing, just don't pay attention if the value is the same as it's preceding.
+            else
+            {
+                for (int i = 0; i < inputArr.Length - 1; i++)
+                {
+                    if (inputArr[i + 1] > inputArr[i]) { return false; }
+                }
+                return true;
+            }
+        }
+        public static bool IsDescending(this double[] inputArr, bool StrictMode = false)
+        {
+            //if length is less than 2, return true - single values can be seen as descending with themselves...
+            if (inputArr.Length < 2) { return true; }
+            if (StrictMode)
+            {
+                for (int i = 0; i < inputArr.Length - 1; i++)
+                {
+                    if (inputArr[i + 1] >= inputArr[i]) { return false; }
+                }
+                return true;
+            }
+            //if strictmode is false, do the same thing, just don't pay attention if the value is the same as it's preceding.
+            else
+            {
+                for (int i = 0; i < inputArr.Length - 1; i++)
+                {
+                    if (inputArr[i + 1] > inputArr[i]) { return false; }
+                }
+                return true;
+            }
+        }
+        public static bool IsDescending(this float[] inputArr, bool StrictMode = false)
+        {
+            //if length is less than 2, return true - single values can be seen as descending with themselves...
+            if (inputArr.Length < 2) { return true; }
+            if (StrictMode)
+            {
+                for (int i = 0; i < inputArr.Length - 1; i++)
+                {
+                    if (inputArr[i + 1] >= inputArr[i]) { return false; }
+                }
+                return true;
+            }
+            //if strictmode is false, do the same thing, just don't pay attention if the value is the same as it's preceding.
+            else
+            {
+                for (int i = 0; i < inputArr.Length - 1; i++)
+                {
+                    if (inputArr[i + 1] > inputArr[i]) { return false; }
+                }
+                return true;
+            }
+        }
+        public static bool IsDescending(this short[] inputArr, bool StrictMode = false)
+        {
+            //if length is less than 2, return true - single values can be seen as descending with themselves...
+            if (inputArr.Length < 2) { return true; }
+            if (StrictMode)
+            {
+                for (int i = 0; i < inputArr.Length - 1; i++)
+                {
+                    if (inputArr[i + 1] >= inputArr[i]) { return false; }
+                }
+                return true;
+            }
+            //if strictmode is false, do the same thing, just don't pay attention if the value is the same as it's preceding.
+            else
+            {
+                for (int i = 0; i < inputArr.Length - 1; i++)
+                {
+                    if (inputArr[i + 1] > inputArr[i]) { return false; }
+                }
+                return true;
+            }
+        }
+        public static bool IsDescending(this ushort[] inputArr, bool StrictMode = false)
+        {
+            //if length is less than 2, return true - single values can be seen as descending with themselves...
+            if (inputArr.Length < 2) { return true; }
+            if (StrictMode)
+            {
+                for (int i = 0; i < inputArr.Length - 1; i++)
+                {
+                    if (inputArr[i + 1] >= inputArr[i]) { return false; }
+                }
+                return true;
+            }
+            //if strictmode is false, do the same thing, just don't pay attention if the value is the same as it's preceding.
+            else
+            {
+                for (int i = 0; i < inputArr.Length - 1; i++)
+                {
+                    if (inputArr[i + 1] > inputArr[i]) { return false; }
+                }
+                return true;
+            }
+        }
+        public static bool IsDescending(this long[] inputArr, bool StrictMode = false)
+        {
+            //if length is less than 2, return true - single values can be seen as descending with themselves...
+            if (inputArr.Length < 2) { return true; }
+            if (StrictMode)
+            {
+                for (int i = 0; i < inputArr.Length - 1; i++)
+                {
+                    if (inputArr[i + 1] >= inputArr[i]) { return false; }
+                }
+                return true;
+            }
+            //if strictmode is false, do the same thing, just don't pay attention if the value is the same as it's preceding.
+            else
+            {
+                for (int i = 0; i < inputArr.Length - 1; i++)
+                {
+                    if (inputArr[i + 1] > inputArr[i]) { return false; }
+                }
+                return true;
+            }
+        }
+        public static bool IsDescending(this ulong[] inputArr, bool StrictMode = false)
+        {
+            //if length is less than 2, return true - single values can be seen as descending with themselves...
+            if (inputArr.Length < 2) { return true; }
+            if (StrictMode)
+            {
+                for (int i = 0; i < inputArr.Length - 1; i++)
+                {
+                    if (inputArr[i + 1] >= inputArr[i]) { return false; }
+                }
+                return true;
+            }
+            //if strictmode is false, do the same thing, just don't pay attention if the value is the same as it's preceding.
+            else
+            {
+                for (int i = 0; i < inputArr.Length - 1; i++)
+                {
+                    if (inputArr[i + 1] > inputArr[i]) { return false; }
+                }
+                return true;
+            }
+        }
+        public static bool IsDescending(this decimal[] inputArr, bool StrictMode = false)
+        {
+            //if length is less than 2, return true - single values can be seen as descending with themselves...
+            if (inputArr.Length < 2) { return true; }
+            if (StrictMode)
+            {
+                for (int i = 0; i < inputArr.Length - 1; i++)
+                {
+                    if (inputArr[i + 1] >= inputArr[i]) { return false; }
+                }
+                return true;
+            }
+            //if strictmode is false, do the same thing, just don't pay attention if the value is the same as it's preceding.
+            else
+            {
+                for (int i = 0; i < inputArr.Length - 1; i++)
+                {
+                    if (inputArr[i + 1] > inputArr[i]) { return false; }
+                }
+                return true;
+            }
+        }
+        public static bool IsDescending(this byte[] inputArr, bool StrictMode = false)
+        {
+            //if length is less than 2, return true - single values can be seen as descending with themselves...
+            if (inputArr.Length < 2) { return true; }
+            if (StrictMode)
+            {
+                for (int i = 0; i < inputArr.Length - 1; i++)
+                {
+                    if (inputArr[i + 1] >= inputArr[i]) { return false; }
+                }
+                return true;
+            }
+            //if strictmode is false, do the same thing, just don't pay attention if the value is the same as it's preceding.
+            else
+            {
+                for (int i = 0; i < inputArr.Length - 1; i++)
+                {
+                    if (inputArr[i + 1] > inputArr[i]) { return false; }
+                }
+                return true;
+            }
+        }
+        public static bool IsDescending(this sbyte[] inputArr, bool StrictMode = false)
+        {
+            //if length is less than 2, return true - single values can be seen as descending with themselves...
+            if (inputArr.Length < 2) { return true; }
+            if (StrictMode)
+            {
+                for (int i = 0; i < inputArr.Length - 1; i++)
+                {
+                    if (inputArr[i + 1] >= inputArr[i]) { return false; }
+                }
+                return true;
+            }
+            //if strictmode is false, do the same thing, just don't pay attention if the value is the same as it's preceding.
+            else
+            {
+                for (int i = 0; i < inputArr.Length - 1; i++)
+                {
+                    if (inputArr[i + 1] > inputArr[i]) { return false; }
+                }
+                return true;
+            }
+        }
+        public static bool IsDescending(this char[] inputArr, bool StrictMode = false)
+        {
+            //if length is less than 2, return true - single values can be seen as descending with themselves...
+            if (inputArr.Length < 2) { return true; }
+            if (StrictMode)
+            {
+                for (int i = 0; i < inputArr.Length - 1; i++)
+                {
+                    if (inputArr[i + 1] >= inputArr[i]) { return false; }
+                }
+                return true;
+            }
+            //if strictmode is false, do the same thing, just don't pay attention if the value is the same as it's preceding.
+            else
+            {
+                for (int i = 0; i < inputArr.Length - 1; i++)
+                {
+                    if (inputArr[i + 1] > inputArr[i]) { return false; }
+                }
+                return true;
+            }
+        }
+
+        #region BubbleSort
+        public static double[] BubbleSort(this double[] inputArr, bool Descending = false) 
+        {
+            //should I be recursive or awaitable? We don't care about blocking the main thread, so don't need awaitable. Method can probably be written recursively and not
+            //Step through array, swapping element b with a if b is less than a, keeping track of whether any swaps are needed.
+
+            bool swapCheck;
+            do
+            {
+                swapCheck = false;
+                for (int i = 0; i < inputArr.Length - 1; i++) //loop through array checking elements a and b
+                {
+                    var Temp = inputArr[i];
+                    if (!Descending)
+                    {
+                        if (Temp > inputArr[i + 1]) //swap position of the 2 elements if a is greater than b
+                        {
+                            inputArr[i] = inputArr[i + 1];
+                            inputArr[i + 1] = Temp;
+                            swapCheck = true; //enable swap flag
+                        }
+                    }
+                    else
+                    {
+                        if (Temp < inputArr[i + 1])
+                        {
+                            inputArr[i] = inputArr[i + 1];
+                            inputArr[i + 1] = Temp;
+                            swapCheck = true;
+                        }
+                    }
+                }
+            }
+            while (swapCheck);
+            //while (swapCheck); //will loop until swapCheck makes it through as false
+            return inputArr;
+
+        }
+        public static float[] BubbleSort(this float[] inputArr, bool Descending = false) 
+        {
+            //should I be recursive or awaitable? We don't care about blocking the main thread, so don't need awaitable. Method can probably be written recursively and not
+            //Step through array, swapping element b with a if b is less than a, keeping track of whether any swaps are needed.
+
+            bool swapCheck;
+            do
+            {
+                swapCheck = false;
+                for (int i = 0; i < inputArr.Length - 1; i++) //loop through array checking elements a and b
+                {
+                    var Temp = inputArr[i];
+                    if (!Descending)
+                    {
+                        if (Temp > inputArr[i + 1]) //swap position of the 2 elements if a is greater than b
+                        {
+                            inputArr[i] = inputArr[i + 1];
+                            inputArr[i + 1] = Temp;
+                            swapCheck = true; //enable swap flag
+                        }
+                    }
+                    else
+                    {
+                        if (Temp < inputArr[i + 1])
+                        {
+                            inputArr[i] = inputArr[i + 1];
+                            inputArr[i + 1] = Temp;
+                            swapCheck = true;
+                        }
+                    }
+                }
+            }
+            while (swapCheck);
+            //while (swapCheck); //will loop until swapCheck makes it through as false
+            return inputArr;
+
+        }
+        public static int[] BubbleSort(this int[] inputArr, bool Descending = false)
+        {
+            //should I be recursive or awaitable? We don't care about blocking the main thread, so don't need awaitable. Method can probably be written recursively and not
+            //Step through array, swapping element b with a if b is less than a, keeping track of whether any swaps are needed.
+
+            bool swapCheck;
+            do
+            {
+                swapCheck = false;
+                for (int i = 0; i < inputArr.Length - 1; i++) //loop through array checking elements a and b
+                {
+                    var Temp = inputArr[i];
+                    if (!Descending)
+                    {
+                        if (Temp > inputArr[i + 1]) //swap position of the 2 elements if a is greater than b
+                        {
+                            inputArr[i] = inputArr[i + 1];
+                            inputArr[i + 1] = Temp;
+                            swapCheck = true; //enable swap flag
+                        }
+                    }
+                    else
+                    {
+                        if (Temp < inputArr[i + 1])
+                        {
+                            inputArr[i] = inputArr[i + 1];
+                            inputArr[i + 1] = Temp;
+                            swapCheck = true;
+                        }
+                    }
+                }
+            }
+            while (swapCheck);
+            //while (swapCheck); //will loop until swapCheck makes it through as false
+            return inputArr;
+
+        }
+        public static uint[] BubbleSort(this uint[] inputArr, bool Descending = false)
+        {
+            //should I be recursive or awaitable? We don't care about blocking the main thread, so don't need awaitable. Method can probably be written recursively and not
+            //Step through array, swapping element b with a if b is less than a, keeping track of whether any swaps are needed.
+
+            bool swapCheck;
+            do
+            {
+                swapCheck = false;
+                for (int i = 0; i < inputArr.Length - 1; i++) //loop through array checking elements a and b
+                {
+                    var Temp = inputArr[i];
+                    if (!Descending)
+                    {
+                        if (Temp > inputArr[i + 1]) //swap position of the 2 elements if a is greater than b
+                        {
+                            inputArr[i] = inputArr[i + 1];
+                            inputArr[i + 1] = Temp;
+                            swapCheck = true; //enable swap flag
+                        }
+                    }
+                    else
+                    {
+                        if (Temp < inputArr[i + 1])
+                        {
+                            inputArr[i] = inputArr[i + 1];
+                            inputArr[i + 1] = Temp;
+                            swapCheck = true;
+                        }
+                    }
+                }
+            }
+            while (swapCheck);
+            //while (swapCheck); //will loop until swapCheck makes it through as false
+            return inputArr;
+
+        }
+        public static long[] BubbleSort(this long[] inputArr, bool Descending = false)
+        {
+            //should I be recursive or awaitable? We don't care about blocking the main thread, so don't need awaitable. Method can probably be written recursively and not
+            //Step through array, swapping element b with a if b is less than a, keeping track of whether any swaps are needed.
+
+            bool swapCheck;
+            do
+            {
+                swapCheck = false;
+                for (int i = 0; i < inputArr.Length - 1; i++) //loop through array checking elements a and b
+                {
+                    var Temp = inputArr[i];
+                    if (!Descending)
+                    {
+                        if (Temp > inputArr[i + 1]) //swap position of the 2 elements if a is greater than b
+                        {
+                            inputArr[i] = inputArr[i + 1];
+                            inputArr[i + 1] = Temp;
+                            swapCheck = true; //enable swap flag
+                        }
+                    }
+                    else
+                    {
+                        if (Temp < inputArr[i + 1])
+                        {
+                            inputArr[i] = inputArr[i + 1];
+                            inputArr[i + 1] = Temp;
+                            swapCheck = true;
+                        }
+                    }
+                }
+            }
+            while (swapCheck);
+            //while (swapCheck); //will loop until swapCheck makes it through as false
+            return inputArr;
+
+        }
+        public static ulong[] BubbleSort(this ulong[] inputArr, bool Descending = false)
+        {
+            //should I be recursive or awaitable? We don't care about blocking the main thread, so don't need awaitable. Method can probably be written recursively and not
+            //Step through array, swapping element b with a if b is less than a, keeping track of whether any swaps are needed.
+
+            bool swapCheck;
+            do
+            {
+                swapCheck = false;
+                for (int i = 0; i < inputArr.Length - 1; i++) //loop through array checking elements a and b
+                {
+                    var Temp = inputArr[i];
+                    if (!Descending)
+                    {
+                        if (Temp > inputArr[i + 1]) //swap position of the 2 elements if a is greater than b
+                        {
+                            inputArr[i] = inputArr[i + 1];
+                            inputArr[i + 1] = Temp;
+                            swapCheck = true; //enable swap flag
+                        }
+                    }
+                    else
+                    {
+                        if (Temp < inputArr[i + 1])
+                        {
+                            inputArr[i] = inputArr[i + 1];
+                            inputArr[i + 1] = Temp;
+                            swapCheck = true;
+                        }
+                    }
+                }
+            }
+            while (swapCheck);
+            //while (swapCheck); //will loop until swapCheck makes it through as false
+            return inputArr;
+
+        }
+        public static char[] BubbleSort(this char[] inputArr, bool Descending = false)
+        {
+            //should I be recursive or awaitable? We don't care about blocking the main thread, so don't need awaitable. Method can probably be written recursively and not
+            //Step through array, swapping element b with a if b is less than a, keeping track of whether any swaps are needed.
+
+            bool swapCheck;
+            do
+            {
+                swapCheck = false;
+                for (int i = 0; i < inputArr.Length - 1; i++) //loop through array checking elements a and b
+                {
+                    var Temp = inputArr[i];
+                    if (!Descending)
+                    {
+                        if (Temp > inputArr[i + 1]) //swap position of the 2 elements if a is greater than b
+                        {
+                            inputArr[i] = inputArr[i + 1];
+                            inputArr[i + 1] = Temp;
+                            swapCheck = true; //enable swap flag
+                        }
+                    }
+                    else
+                    {
+                        if (Temp < inputArr[i + 1])
+                        {
+                            inputArr[i] = inputArr[i + 1];
+                            inputArr[i + 1] = Temp;
+                            swapCheck = true;
+                        }
+                    }
+                }
+            }
+            while (swapCheck);
+            //while (swapCheck); //will loop until swapCheck makes it through as false
+            return inputArr;
+
+        }
+        public static sbyte[] BubbleSort(this sbyte[] inputArr, bool Descending = false)
+        {
+            //should I be recursive or awaitable? We don't care about blocking the main thread, so don't need awaitable. Method can probably be written recursively and not
+            //Step through array, swapping element b with a if b is less than a, keeping track of whether any swaps are needed.
+
+            bool swapCheck;
+            do
+            {
+                swapCheck = false;
+                for (int i = 0; i < inputArr.Length - 1; i++) //loop through array checking elements a and b
+                {
+                    var Temp = inputArr[i];
+                    if (!Descending)
+                    {
+                        if (Temp > inputArr[i + 1]) //swap position of the 2 elements if a is greater than b
+                        {
+                            inputArr[i] = inputArr[i + 1];
+                            inputArr[i + 1] = Temp;
+                            swapCheck = true; //enable swap flag
+                        }
+                    }
+                    else
+                    {
+                        if (Temp < inputArr[i + 1])
+                        {
+                            inputArr[i] = inputArr[i + 1];
+                            inputArr[i + 1] = Temp;
+                            swapCheck = true;
+                        }
+                    }
+                }
+            }
+            while (swapCheck);
+            //while (swapCheck); //will loop until swapCheck makes it through as false
+            return inputArr;
+
+        }
+        public static byte[] BubbleSort(this byte[] inputArr, bool Descending = false)
+        {
+            //should I be recursive or awaitable? We don't care about blocking the main thread, so don't need awaitable. Method can probably be written recursively and not
+            //Step through array, swapping element b with a if b is less than a, keeping track of whether any swaps are needed.
+
+            bool swapCheck;
+            do
+            {
+                swapCheck = false;
+                for (int i = 0; i < inputArr.Length - 1; i++) //loop through array checking elements a and b
+                {
+                    var Temp = inputArr[i];
+                    if (!Descending)
+                    {
+                        if (Temp > inputArr[i + 1]) //swap position of the 2 elements if a is greater than b
+                        {
+                            inputArr[i] = inputArr[i + 1];
+                            inputArr[i + 1] = Temp;
+                            swapCheck = true; //enable swap flag
+                        }
+                    }
+                    else
+                    {
+                        if (Temp < inputArr[i + 1])
+                        {
+                            inputArr[i] = inputArr[i + 1];
+                            inputArr[i + 1] = Temp;
+                            swapCheck = true;
+                        }
+                    }
+                }
+            }
+            while (swapCheck);
+            //while (swapCheck); //will loop until swapCheck makes it through as false
+            return inputArr;
+
+        }
+        public static ushort[] BubbleSort(this ushort[] inputArr, bool Descending = false)
+        {
+            //should I be recursive or awaitable? We don't care about blocking the main thread, so don't need awaitable. Method can probably be written recursively and not
+            //Step through array, swapping element b with a if b is less than a, keeping track of whether any swaps are needed.
+
+            bool swapCheck;
+            do
+            {
+                swapCheck = false;
+                for (int i = 0; i < inputArr.Length - 1; i++) //loop through array checking elements a and b
+                {
+                    var Temp = inputArr[i];
+                    if (!Descending)
+                    {
+                        if (Temp > inputArr[i + 1]) //swap position of the 2 elements if a is greater than b
+                        {
+                            inputArr[i] = inputArr[i + 1];
+                            inputArr[i + 1] = Temp;
+                            swapCheck = true; //enable swap flag
+                        }
+                    }
+                    else
+                    {
+                        if (Temp < inputArr[i + 1])
+                        {
+                            inputArr[i] = inputArr[i + 1];
+                            inputArr[i + 1] = Temp;
+                            swapCheck = true;
+                        }
+                    }
+                }
+            }
+            while (swapCheck);
+            //while (swapCheck); //will loop until swapCheck makes it through as false
+            return inputArr;
+
+        }
+        public static short[] BubbleSort(this short[] inputArr, bool Descending = false)
+        {
+            //should I be recursive or awaitable? We don't care about blocking the main thread, so don't need awaitable. Method can probably be written recursively and not
+            //Step through array, swapping element b with a if b is less than a, keeping track of whether any swaps are needed.
+
+            bool swapCheck;
+            do
+            {
+                swapCheck = false;
+                for (int i = 0; i < inputArr.Length - 1; i++) //loop through array checking elements a and b
+                {
+                    var Temp = inputArr[i];
+                    if (!Descending)
+                    {
+                        if (Temp > inputArr[i + 1]) //swap position of the 2 elements if a is greater than b
+                        {
+                            inputArr[i] = inputArr[i + 1];
+                            inputArr[i + 1] = Temp;
+                            swapCheck = true; //enable swap flag
+                        }
+                    }
+                    else
+                    {
+                        if (Temp < inputArr[i + 1])
+                        {
+                            inputArr[i] = inputArr[i + 1];
+                            inputArr[i + 1] = Temp;
+                            swapCheck = true;
+                        }
+                    }
+                }
+            }
+            while (swapCheck);
+            //while (swapCheck); //will loop until swapCheck makes it through as false
+            return inputArr;
+
+        }
+        public static decimal[] BubbleSort(this decimal[] inputArr, bool Descending = false)
+        {
+            //should I be recursive or awaitable? We don't care about blocking the main thread, so don't need awaitable. Method can probably be written recursively and not
+            //Step through array, swapping element b with a if b is less than a, keeping track of whether any swaps are needed.
+
+            bool swapCheck;
+            do
+            {
+                swapCheck = false;
+                for (int i = 0; i < inputArr.Length - 1; i++) //loop through array checking elements a and b
+                {
+                    var Temp = inputArr[i];
+                    if (!Descending)
+                    {
+                        if (Temp > inputArr[i + 1]) //swap position of the 2 elements if a is greater than b
+                        {
+                            inputArr[i] = inputArr[i + 1];
+                            inputArr[i + 1] = Temp;
+                            swapCheck = true; //enable swap flag
+                        }
+                    }
+                    else
+                    {
+                        if (Temp < inputArr[i + 1])
+                        {
+                            inputArr[i] = inputArr[i + 1];
+                            inputArr[i + 1] = Temp;
+                            swapCheck = true;
+                        }
+                    }
+                }
+            }
+            while (swapCheck);
+            //while (swapCheck); //will loop until swapCheck makes it through as false
+            return inputArr;
+
+        }
+        #endregion //BubbleSort
     }
 }
